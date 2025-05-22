@@ -1,5 +1,5 @@
 import {
-    ConflictException,
+    ConflictException, forwardRef, Inject,
     Injectable,
     InternalServerErrorException,
     NotFoundException,
@@ -16,6 +16,7 @@ import { UserService} from "../user/user.service";
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
 import { ProviderService } from './provider/provider.service'
+import {EmailConfirmationService} from "./email-confirmation/email-confirmation.service";
 
 
 @Injectable()
@@ -25,6 +26,8 @@ export class AuthService {
         private readonly userService: UserService,
         private readonly configService: ConfigService,
         private readonly providerService: ProviderService,
+        @Inject(forwardRef(() => EmailConfirmationService))
+        private readonly emailConfirmationService: EmailConfirmationService,
 
     ) {}
 
@@ -46,6 +49,7 @@ export class AuthService {
             false
         )
 
+        await this.emailConfirmationService.sendVerificationToken(newUser)
 
 
         return {
@@ -69,6 +73,11 @@ export class AuthService {
             throw new UnauthorizedException(
                 'Неверный пароль. Пожалуйста, попробуйте еще раз или восстановите пароль, если забыли его.'
             )
+        }
+
+        if(!user.isVerified){
+            await this.emailConfirmationService.sendVerificationToken(user)
+            throw new UnauthorizedException('пж пороверьте вашу почту и подтвердите адрес')
         }
 
 
