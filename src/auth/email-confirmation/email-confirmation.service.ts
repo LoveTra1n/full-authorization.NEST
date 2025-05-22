@@ -88,9 +88,8 @@ export class EmailConfirmationService {
 
     private async generateVerificationToken(email: string) {
         const token = uuidv4()
+
         const expiresIn = new Date(Date.now() + 3600 * 1000)
-
-
         const existingToken = await this.prismaService.token.findFirst({
             where: {
                 email,
