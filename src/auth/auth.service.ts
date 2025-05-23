@@ -17,6 +17,7 @@ import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
 import { ProviderService } from './provider/provider.service'
 import {EmailConfirmationService} from "./email-confirmation/email-confirmation.service";
+import {TwoFactorAuthService} from "./two-factor-auth/two-factor-auth.service";
 
 
 @Injectable()
@@ -28,6 +29,7 @@ export class AuthService {
         private readonly providerService: ProviderService,
         @Inject(forwardRef(() => EmailConfirmationService))
         private readonly emailConfirmationService: EmailConfirmationService,
+        private readonly twoFactorAuthService: TwoFactorAuthService,
 
     ) {}
 
@@ -49,7 +51,7 @@ export class AuthService {
             false
         )
 
-        await this.emailConfirmationService.sendVerificationToken(newUser)
+        await this.emailConfirmationService.sendVerificationToken(newUser.email)
 
 
         return {
@@ -76,8 +78,20 @@ export class AuthService {
         }
 
         if(!user.isVerified){
-            await this.emailConfirmationService.sendVerificationToken(user)
+            await this.emailConfirmationService.sendVerificationToken(user.email)
             throw new UnauthorizedException('пж пороверьте вашу почту и подтвердите адрес')
+        }
+
+        if(user.isTwoFactorEnabled){
+            if(!dto.code){
+                await this.twoFactorAuthService.sendTwoFactorToken(user.email)
+
+                return {
+                    message:'check it out ur gmail.Required two factor code'
+                }
+            }
+
+            await this.twoFactorAuthService.validateTwoFactorToken(user.email, dto.code)
         }
 
 
